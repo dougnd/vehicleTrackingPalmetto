@@ -1,0 +1,7 @@
+# files to be ignored by stow (in perl matching notation)
+
+# git stuff:
+\.git
+\.gitignore
+
+README.md

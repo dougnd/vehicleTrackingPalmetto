@@ -1,0 +1,26 @@
+#!/bin/bash
+#PBS -N run_sim
+#PBS -l select=1:ncpus=2:mem=11gb,walltime=3:00:00
+#PBS -j oe
+
+######NOTPBS -l select=1:ncpus=2:mem=11gb:chip_type=e5-2665,walltime=3:00:00
+
+#define the following vars:
+# file
+# errorRate
+
+cd $TMPDIR
+#git clone dndawso@git.ces.clemson.edu:/git/pss-research/vehicleTracking.git
+cp -r /scratch2/dndawso/vehicleTracking .
+cd vehicleTracking
+rm -rf build
+mkdir build
+cd build
+module add java/1.7.0
+cmake ..
+make tracker
+echo "" > output.csv
+javaTracker/runTracker.sh $file --nogui $errorRate $errorRate
+
+cat output.csv >> ~/sim_results.csv
+

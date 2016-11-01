@@ -8,7 +8,7 @@ import socket
 from itertools import product
 
 
-def doSim(err, fileName, tmpDir, initialSource, qsubL, weights):
+def doSim(err, fileName, tmpDir, initialSource, weights):
     if tmpDir == None:
         tmpDir = os.environ['TMPDIR']
 

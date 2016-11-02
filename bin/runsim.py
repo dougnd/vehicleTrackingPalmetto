@@ -98,10 +98,33 @@ if args.command == 'results':
     else:
         s= '1lane_divided'
         weights = [0.0, 0.1, 0.5, 1.0, 2.0, 10.0]
+        table = []
+        table.append(['', 'error:'] + [0.0]*5 +[0.05]*5+[0.1]*5)
+        table.append(['freq', 'weight'] + ['NVT', 'NMT', 'NFT', 'ANST', 'ATC']*3)
         for f in [1, 5, 10]:
-            for err in [0.0, 0.05, 0.1]:
-                for w in weights:
-                    pass
+            for w in weights:
+                line = [f, w]
+                for err in [0.0, 0.05, 0.1]:
+                    j = next(j for j in jobs 
+                            if getHz(j.decode(j.params)['fileName']) == f and
+                                getSenario(j.decode(j.params)['fileName']) == s and
+                                j.decode(j.params)['err'] == err)
+                    if j.getStatus(True) != pypalmetto.JobStatus.Completed:
+                        continue
+
+                    r = j.decode(j.retVal)[w][0].split(',')
+                    print r
+                    line.extend([
+                         float(r[6])/float(r[4])*100.0, 
+                        float(r[7])/float(r[4])*100, 
+                        float(r[8])/float(r[4])*100.0, float(r[10]), float(r[11])])
+                table.append(line)
+        with open(s+'_appearance_out.csv', 'w') as fo:
+            for l in table:
+                fo.write(','.join([str(i) for i in l]))
+                fo.write('\n')
+                    
+
 
 
 

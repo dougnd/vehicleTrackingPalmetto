@@ -4,13 +4,16 @@ from itertools import product
 import argparse
 import pypalmetto 
 
+vtp = vtpalmetto.VTPalmetto()
+
+vtp.qsubParams = dict(l='select=1:ncpus=2:mem=10gb,walltime=6:00:00')
 def doSim(err, fileName, weights):
 
-    vtpalmetto.gotoTmp()
+    vtp.gotoTmp()
     rm('-rf', 'vehicleTracking')
-    vtpalmetto.getVT()
-    vtpalmetto.cmakeVT()
-    vtpalmetto.makeVT('tracker')
+    vtp.getVT()
+    vtp.cmakeVT()
+    vtp.makeVT('tracker')
     tracker = Command("javaTracker/runTracker.sh")
     ret={}
     for w in weights:
@@ -37,12 +40,12 @@ senarios = ['1lane_divided', '1lane_undivided', '2lane_divided', '2lane_undivide
 freq = [1, 5, 10]
 errorList = [0.0, 0.05, 0.1]
 def fname(s,f):
-    return '{0}/data/vehicleSimulation/{1}_{2}hz.csv'.format(vtpalmetto.srcDir, s, f)
+    return '{0}/data/vehicleSimulation/{1}_{2}hz.csv'.format(vtp.srcDir, s, f)
 
 
 params = []
 if args.appearance:
-    vtpalmetto.name = 'simTrackApp'
+    vtp.name = 'simTrackApp'
     weights = [0.0, 0.1, 0.5, 1.0, 2.0, 10.0]
     fnames = [fname(senarios[0],f) for f in freq]
     params = list(dict(zip(['err', 'fileName'], x)) for x in 
@@ -51,7 +54,7 @@ if args.appearance:
         p['weights'] = weights
 
 else:
-    vtpalmetto.name = 'simTrack'
+    vtp.name = 'simTrack'
     fnames = [fname(s,f) for (s,f) in product(senarios, freq)]
     params = list(dict(zip(['err', 'fileName'], x)) for x in 
         product(errorList, fnames))
@@ -60,18 +63,18 @@ else:
 
 
 if args.command == 'submit':
-    vtpalmetto.submit(doSim,params)
+    vtp.submit(doSim,params)
 elif args.command == 'status':
-    vtpalmetto.printStatus()
+    vtp.printStatus()
 elif args.command == 'results':
-    jobs = vtpalmetto.getJobs()
+    jobs = vtp.getJobs()
     if not args.appearance:
         tables = {}
         for s in senarios:
             tables[s] = []
             for f in freq:
                 for err in errorList:
-                    j = vtpalmetto.getJobByParams(_jobs=jobs, err=err, 
+                    j = vtp.getJobByParams(_jobs=jobs, err=err, 
                             fileName=fname(s,f))
                     if j.getStatus(True) == pypalmetto.JobStatus.Completed:
                         #print j.decode(j.retVal)
@@ -96,7 +99,7 @@ elif args.command == 'results':
             for w in weights:
                 line = [f, w]
                 for err in errorList:
-                    j = vtpalmetto.getJobByParams(_jobs=jobs, err=err, 
+                    j = vtp.getJobByParams(_jobs=jobs, err=err, 
                             fileName=fname(s,f))
                     if j.getStatus(True) != pypalmetto.JobStatus.Completed:
                         continue

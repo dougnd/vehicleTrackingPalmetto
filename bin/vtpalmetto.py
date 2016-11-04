@@ -5,109 +5,109 @@ import argparse
 import pypalmetto
 
 
-
-hostname = socket.gethostname()
-isPalmetto = hostname == 'user001'
-if isPalmetto:
-    srcDir = '/scratch2/dndawso/vehicleTracking'
-    javaCache = '/scratch2/dndawso/javaCache'
-    installDir = os.environ['HOME'] + '/usr/local'
-    cmakeParams = [
-            '-DDATA_DIR=/scratch2/dndawso/vehicleTracking/data',
-            '-DCAFFE_DIR='+installDir,
-            '-DBOOST_ROOT='+installDir,
-            '-DBoost_NO_BOOST_CMAKE=ON',
-            '-DLEVELDB_ROOT='+installDir,
-            '-DUSE_MKL=ON',
-            '-DCMAKE_PREFIX_PATH='+installDir,
-            '-DJAVA_CACHE_DIR=/scratch2/dndawso/javaCache'
-            ]
-else:
-    srcDir = '/home/doug/Documents/research/vehicleTracking'
-    cmakeParams = [
-            '-DDATA_DIR='+srcDir+'/data',
-            '-DJAVA_CACHE_DIR=/home/doug/Documents/research/vehicleTracking/build/javaTracker'
-            ]
-
-name = 'unnamed'
-
-qsubParams = dict(l='select=1:ncpus=1:mem=1gb,walltime=0:30:00')
-
-palmetto = pypalmetto.Palmetto()
-
-def getTmpDir():
-    if isPalmetto:
-        return os.environ['TMPDIR']
-    else:
-        return '/tmp'
-
-def gotoTmp():
-    os.chdir(getTmpDir())
-
-def getVT():
-    git('clone', '-s', srcDir)
-    os.chdir('vehicleTracking')
-    git('pull')
-    rm('-rf', 'build')
-    mkdir('build')
-    os.chdir('build')
-
-def cmakeVT():
-    cmake(*cmakeParams + ['..'])
-
-def makeVT(*args):
-    make(*args)
-
-
-def submit(task,params):
-    for p in params:
-        j = palmetto.createJob(task, p, name, qsubParams)
-        print len(j.runFunc)
-        if isPalmetto:
-            j.submit()
+class VTPalmetto(object):
+    def __init__(self):
+        hostname = socket.gethostname()
+        self.isPalmetto = hostname == 'user001'
+        if self.isPalmetto:
+            self.srcDir = '/scratch2/dndawso/vehicleTracking'
+            self.installDir = os.environ['HOME'] + '/usr/local'
+            self.cmakeParams = [
+                    '-DDATA_DIR=/scratch2/dndawso/vehicleTracking/data',
+                    '-DCAFFE_DIR='+self.installDir,
+                    '-DBOOST_ROOT='+self.installDir,
+                    '-DBoost_NO_BOOST_CMAKE=ON',
+                    '-DLEVELDB_ROOT='+self.installDir,
+                    '-DUSE_MKL=ON',
+                    '-DCMAKE_PREFIX_PATH='+self.installDir,
+                    '-DJAVA_CACHE_DIR=/scratch2/dndawso/javaCache'
+                    ]
         else:
-            j.executeLocal()
+            self.srcDir = '/home/doug/Documents/research/vehicleTracking'
+            self.cmakeParams = [
+                    '-DDATA_DIR='+self.srcDir+'/data',
+                    '-DJAVA_CACHE_DIR=/home/doug/Documents/research/vehicleTracking/build/javaTracker'
+                    ]
 
-def getJobs():
-    return palmetto.getJobsWithName(name)
+        self.name = 'unnamed'
 
-def getJobByParams(**kwarg):
-    if '_jobs' in kwarg:
-        jobs = kwarg['_jobs']
-        del kwarg['_jobs']
-    else:
-        jobs = getJobs()
+        self.qsubParams = dict(l='select=1:ncpus=1:mem=1gb,walltime=0:30:00')
 
-    for j in jobs:
-        params = j.decode(j.params)
-        if all(item in params.items() for item in kwarg.items()):
-            return j
+        self.palmetto = pypalmetto.Palmetto()
 
-    return None
+    def getTmpDir(self):
+        if self.isPalmetto:
+            return os.environ['TMPDIR']
+        else:
+            return '/tmp'
+
+    def gotoTmp(self):
+        os.chdir(self.getTmpDir())
+
+    def getVT(self):
+        git('clone', '-s', self.srcDir)
+        os.chdir('vehicleTracking')
+        git('pull')
+        rm('-rf', 'build')
+        mkdir('build')
+        os.chdir('build')
+
+    def cmakeVT(self):
+        cmake(*self.cmakeParams + ['..'])
+
+    def makeVT(self, *args):
+        make(*args)
 
 
-def printStatus():
-    jobs = getJobs()
-    palmetto.updateDBJobStatuses()
+    def submit(self, task,params):
+        for p in params:
+            j = self.palmetto.createJob(task, p, self.name, self.qsubParams)
+            print len(j.runFunc)
+            if self.isPalmetto:
+                j.submit()
+            else:
+                j.executeLocal()
 
-    numR = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Running])
-    numQ = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Queued])
-    numC = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Completed])
-    numE = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Error])
+    def getJobs(self):
+        return self.palmetto.getJobsWithName(self.name)
 
-    print "job status:"
-    print('R: {0}, Q: {1}, C: {2}, E: {3}'.format(numR, numQ, numC, numE))
+    def getJobByParams(self, **kwarg):
+        if '_jobs' in kwarg:
+            jobs = kwarg['_jobs']
+            del kwarg['_jobs']
+        else:
+            jobs = self.getJobs()
 
-def main(task, params):
-    parser = argparse.ArgumentParser(prog=name)
-    parser.add_argument('command', choices=['submit', 'status'])
+        for j in jobs:
+            params = j.decode(j.params)
+            if all(item in params.items() for item in kwarg.items()):
+                return j
 
-    args = parser.parse_args()
+        return None
 
-    if args.command == 'submit':
-        submit(task,params)
-    if args.command == 'status':
-        printStatus()
+
+    def printStatus(self):
+        jobs = self.getJobs()
+        self.palmetto.updateDBJobStatuses()
+
+        numR = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Running])
+        numQ = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Queued])
+        numC = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Completed])
+        numE = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Error])
+
+        print "job status:"
+        print('R: {0}, Q: {1}, C: {2}, E: {3}'.format(numR, numQ, numC, numE))
+
+    def main(self, task, params):
+        parser = argparse.ArgumentParser(prog=self.name)
+        parser.add_argument('command', choices=['submit', 'status'])
+
+        args = parser.parse_args()
+
+        if args.command == 'submit':
+            submit(task,params)
+        if args.command == 'status':
+            printStatus()
 
 
 

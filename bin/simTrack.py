@@ -5,8 +5,8 @@ import argparse
 import pypalmetto 
 
 vtp = vtpalmetto.VTPalmetto()
-
 vtp.qsubParams = dict(l='select=1:ncpus=2:mem=10gb,walltime=6:00:00')
+
 def doSim(err, fileName, weights):
 
     vtp.gotoTmp()
@@ -63,9 +63,9 @@ else:
 
 
 if args.command == 'submit':
-    vtp.submit(doSim,params)
+    vtpalmetto.submit(vtp,doSim,params)
 elif args.command == 'status':
-    vtp.printStatus()
+    vtpalmetto.printStatus(vtp)
 elif args.command == 'results':
     jobs = vtp.getJobs()
     if not args.appearance:

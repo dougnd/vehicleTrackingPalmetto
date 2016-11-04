@@ -4,6 +4,7 @@ from sh import git, cp, rm, cmake, make, mkdir, Command
 import argparse
 import pypalmetto
 
+palmetto = pypalmetto.Palmetto()
 
 class VTPalmetto(object):
     def __init__(self):
@@ -33,7 +34,6 @@ class VTPalmetto(object):
 
         self.qsubParams = dict(l='select=1:ncpus=1:mem=1gb,walltime=0:30:00')
 
-        self.palmetto = pypalmetto.Palmetto()
 
     def getTmpDir(self):
         if self.isPalmetto:
@@ -58,19 +58,8 @@ class VTPalmetto(object):
     def makeVT(self, *args):
         make(*args)
 
-
-    def submit(self, task,params):
-        for p in params:
-            j = self.palmetto.createJob(task, p, self.name, self.qsubParams)
-            print len(j.runFunc)
-            if self.isPalmetto:
-                j.submit()
-            else:
-                j.executeLocal()
-
     def getJobs(self):
-        return self.palmetto.getJobsWithName(self.name)
-
+        return palmetto.getJobsWithName(self.name)
     def getJobByParams(self, **kwarg):
         if '_jobs' in kwarg:
             jobs = kwarg['_jobs']
@@ -82,32 +71,40 @@ class VTPalmetto(object):
             params = j.decode(j.params)
             if all(item in params.items() for item in kwarg.items()):
                 return j
-
         return None
 
 
-    def printStatus(self):
-        jobs = self.getJobs()
-        self.palmetto.updateDBJobStatuses()
+def submit(vtp, task,params):
+    for p in params:
+        j = palmetto.createJob(task, p, vtp.name, vtp.qsubParams)
+        print len(j.runFunc)
+        if vtp.isPalmetto:
+            j.submit()
+        else:
+            j.executeLocal()
 
-        numR = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Running])
-        numQ = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Queued])
-        numC = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Completed])
-        numE = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Error])
+def printStatus(vtp):
+    jobs = vtp.getJobs()
+    palmetto.updateDBJobStatuses()
 
-        print "job status:"
-        print('R: {0}, Q: {1}, C: {2}, E: {3}'.format(numR, numQ, numC, numE))
+    numR = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Running])
+    numQ = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Queued])
+    numC = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Completed])
+    numE = len([0 for j in jobs if j.getStatus(True) == pypalmetto.JobStatus.Error])
 
-    def main(self, task, params):
-        parser = argparse.ArgumentParser(prog=self.name)
-        parser.add_argument('command', choices=['submit', 'status'])
+    print "job status:"
+    print('R: {0}, Q: {1}, C: {2}, E: {3}'.format(numR, numQ, numC, numE))
 
-        args = parser.parse_args()
+def main(vtp, task, params):
+    parser = argparse.ArgumentParser(prog=vtp.name)
+    parser.add_argument('command', choices=['submit', 'status'])
 
-        if args.command == 'submit':
-            submit(task,params)
-        if args.command == 'status':
-            printStatus()
+    args = parser.parse_args()
+
+    if args.command == 'submit':
+        submit(task,params)
+    if args.command == 'status':
+        printStatus()
 
 
 

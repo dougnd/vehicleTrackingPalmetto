@@ -9,7 +9,6 @@ import pypalmetto
 hostname = socket.gethostname()
 isPalmetto = hostname == 'user001'
 if isPalmetto:
-    tmpDir = os.environ['TMPDIR']
     srcDir = '/scratch2/dndawso/vehicleTracking'
     javaCache = '/scratch2/dndawso/javaCache'
     installDir = os.environ['HOME'] + '/usr/local'
@@ -24,7 +23,6 @@ if isPalmetto:
             '-DJAVA_CACHE_DIR=/scratch2/dndawso/javaCache'
             ]
 else:
-    tmpDir = '/tmp'
     srcDir = '/home/doug/Documents/research/vehicleTracking'
     cmakeParams = [
             '-DDATA_DIR='+srcDir+'/data',
@@ -37,8 +35,14 @@ qsubParams = dict(l='select=1:ncpus=1:mem=1gb,walltime=0:30:00')
 
 palmetto = pypalmetto.Palmetto()
 
+def getTmpDir():
+    if isPalmetto:
+        return os.environ['TMPDIR']
+    else:
+        return '/tmp'
+
 def gotoTmp():
-    os.chdir(tmpDir)
+    os.chdir(getTmpDir())
 
 def getVT():
     git('clone', '-s', srcDir)

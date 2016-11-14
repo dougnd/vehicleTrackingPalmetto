@@ -1,16 +1,21 @@
 import socket
 import os
-from sh import git, cp, rm, cmake, make, mkdir, Command
+from sh import git, cp, rm, cmake, make, mkdir, Command, qstat
 import argparse
 import pypalmetto
+import re
 
 palmetto = pypalmetto.Palmetto()
+
+def _print_line(line):
+    print line
 
 class VTPalmetto(object):
     def __init__(self):
         hostname = socket.gethostname()
         self.isPalmetto = hostname == 'user001'
-        if self.isPalmetto:
+        self.isPalmettoNode = 'node' in hostname
+        if self.isPalmetto or self.isPalmettoNode:
             self.srcDir = '/scratch2/dndawso/vehicleTracking'
             self.installDir = os.environ['HOME'] + '/usr/local'
             self.cmakeParams = [
@@ -31,12 +36,28 @@ class VTPalmetto(object):
                     ]
 
         self.name = 'unnamed'
+        self.runHash = None
+        self.pbsId = None
+        self.gpuDev = None
 
         self.qsubParams = dict(l='select=1:ncpus=1:mem=1gb,walltime=0:30:00')
 
+    def setJob(self, job):
+        self.runHash = job['runHash']
+        self.pbsId = job['pbsId']
+        out = qstat(f=self.pbsId)
+        hostname = socket.gethostname()
+        pattern = 'exec_vnode.*'+hostname+'\[([0-9]+)\]'
+        match = re.search(pattern, out.stdout)
+        if match:
+            self.gpuDev = int(match.group(1))
+            os.environ['gpuDev'] = str(self.gpuDev)
+            print 'Setting GPU device to: {0}'.format(self.gpuDev)
+        else:
+            print 'No GPU device found.'
 
     def getTmpDir(self):
-        if self.isPalmetto:
+        if self.isPalmetto or self.isPalmettoNode:
             return os.environ['TMPDIR']
         else:
             return '/tmp'
@@ -53,10 +74,21 @@ class VTPalmetto(object):
         os.chdir('build')
 
     def cmakeVT(self):
-        cmake(*self.cmakeParams + ['..'])
+        cmake(*self.cmakeParams + ['..'], _out=_print_line, _err=_print_line)
+        
 
     def makeVT(self, *args):
-        make(*args)
+        make(*args, _out=_print_line, _err=_print_line)
+
+    def _exportDir(self):
+        if self.runHash:
+            return os.environ['HOME'] + '/vtp-results/' + self.name + '/' + self.runHash
+        return os.environ['HOME'] + '/vtp-results/' + self.name
+
+    def export(self, fname):
+        mkdir('-p', self._exportDir())
+        cp(fname, self._exportDir())
+
 
     def getJobs(self):
         return palmetto.getJobsWithName(self.name)

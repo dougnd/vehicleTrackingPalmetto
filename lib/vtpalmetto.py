@@ -8,7 +8,7 @@ import re
 palmetto = pypalmetto.Palmetto()
 
 def _print_line(line):
-    print line
+    print line.encode("utf-8")
 
 class VTPalmetto(object):
     def __init__(self):
@@ -45,16 +45,17 @@ class VTPalmetto(object):
     def setJob(self, job):
         self.runHash = job['runHash']
         self.pbsId = job['pbsId']
-        out = qstat(f=self.pbsId)
-        hostname = socket.gethostname()
-        pattern = 'exec_vnode.*'+hostname+'\[([0-9]+)\]'
-        match = re.search(pattern, out.stdout)
-        if match:
-            self.gpuDev = int(match.group(1))
-            os.environ['gpuDev'] = str(self.gpuDev)
-            print 'Setting GPU device to: {0}'.format(self.gpuDev)
-        else:
-            print 'No GPU device found.'
+        if self.pbsId != 0:
+            out = qstat(f=self.pbsId)
+            hostname = socket.gethostname()
+            pattern = 'exec_vnode.*'+hostname+'\[([0-9]+)\]'
+            match = re.search(pattern, out.stdout)
+            if match:
+                self.gpuDev = int(match.group(1))
+                os.environ['gpuDev'] = str(self.gpuDev)
+                print 'Setting GPU device to: {0}'.format(self.gpuDev)
+            else:
+                print 'No GPU device found.'
 
     def getTmpDir(self):
         if self.isPalmetto or self.isPalmettoNode:

@@ -3,8 +3,9 @@ from sh import rm, Command, cp
 import re
 import argparse
 import time
+import numpy as np
 
-runHours = 30
+runHours = 10
 runHoursBuffer = 4
 vtp = vtpalmetto.VTPalmetto()
 vtp.qsubParams = dict(l='select=1:ncpus=1:mem=16gb:ngpus=1:gpu_model=k40,walltime={0}:00:00'.format(
@@ -22,7 +23,7 @@ n=20
 caffeIterations = 3000
 #trainIterations = 9
 
-def task(dataset, _job):
+def task(dataset, threshold, _job):
     startTime = time.time()
     vtp.setJob(_job)
     vtp.gotoTmp()
@@ -55,7 +56,7 @@ def task(dataset, _job):
         labeledDataToDB(**labeledDataParams)
         vtp.makeVT('trainNet')
         vtp.makeVT('buildNet')
-        basicDetector('-r', x, y, w, h, '-s', sz, '-n', n, '-g', vtp.gpuDev, dataset)
+        basicDetector('-r', x, y, w, h, '-s', sz, '-n', n, '-g', vtp.gpuDev, '-t', threshold, dataset)
 
         out = detectionAccuracy(l=dataset, d='detections.pb', 
                 t=' '.join(str(t) for t in trainFrames),
@@ -80,11 +81,16 @@ parser.add_argument('command', choices=['submit', 'status', 'results'])
 args = parser.parse_args()
 
 if args.command == 'submit':
-    vtpalmetto.submit(vtp,task,[dict(dataset='skycomp1')])
+    vtpalmetto.submit(vtp,task,[dict(dataset='skycomp1', threshold=t) for t in np.arange(-1,2.0,0.5)])
 elif args.command == 'status':
     vtpalmetto.printStatus(vtp)
 elif args.command == 'results':
     jobs =vtp.getJobs()
     for j in jobs:
-        print j.decode(j.retVal)
+        ret=j.decode(j.retVal)
+        d = {}
+        for k in ret[0].keys():
+            d[k] = [int(ret[i][k]) for i in sorted(ret.keys())]
+        print d
+        print ret
     

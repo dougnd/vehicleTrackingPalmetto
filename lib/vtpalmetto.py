@@ -1,6 +1,10 @@
 import socket
 import os
-from sh import git, cp, rm, cmake, make, mkdir, Command, qstat
+from sh import git, cp, rm, cmake, make, mkdir, Command
+try:
+    from sh import qstat
+except:
+    print "No qstat found..."
 import argparse
 import pypalmetto
 import re

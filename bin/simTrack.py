@@ -5,10 +5,11 @@ import argparse
 import pypalmetto 
 
 vtp = vtpalmetto.VTPalmetto()
-vtp.qsubParams = dict(l='select=1:ncpus=2:mem=10gb,walltime=6:00:00')
+vtp.qsubParams = dict(l='select=1:ncpus=2:mem=16gb,walltime=6:00:00')
 
-def doSim(err, fileName, weights):
+def doSim(err, fileName, weights, _job):
 
+    vtp.setJob(_job)
     vtp.gotoTmp()
     rm('-rf', 'vehicleTracking')
     vtp.getVT()
@@ -26,6 +27,7 @@ def doSim(err, fileName, weights):
             out = [o.strip() for o in out]
             print out
             ret[w]=out
+    vtp.export('frame_output.csv')
     return ret
 
 
@@ -33,6 +35,7 @@ def doSim(err, fileName, weights):
 parser = argparse.ArgumentParser()
 parser.add_argument('command', choices=['submit', 'status', 'results'])
 parser.add_argument('-a', '--appearance', action='store_true')
+parser.add_argument('-v', '--verbose', action='store_true')
 
 args = parser.parse_args()
 
@@ -46,10 +49,12 @@ def fname(s,f):
 params = []
 if args.appearance:
     vtp.name = 'simTrackApp'
-    weights = [0.0, 0.1, 0.5, 1.0, 2.0, 10.0]
+    #weights = [0.0, 0.1, 0.5, 1.0, 2.0, 10.0]
+    weights = [10.0]
     fnames = [fname(senarios[0],f) for f in freq]
     params = list(dict(zip(['err', 'fileName'], x)) for x in 
-        product(errorList, fnames))
+        product([0.1], fnames))
+    #product(errorList, fnames))
     for p in params:
         p['weights'] = weights
 
@@ -66,6 +71,14 @@ if args.command == 'submit':
     vtpalmetto.submit(vtp,doSim,params)
 elif args.command == 'status':
     vtpalmetto.printStatus(vtp)
+    if args.verbose:
+        jobs = vtp.getJobs()
+        for j in jobs:
+            params=j.decode(j.params)
+            print '{0} {1} {2} {3} {4}'.format(params['fileName'], params['err'], params['weights'], j.runHash, j.getStatus(True))
+
+
+
 elif args.command == 'results':
     jobs = vtp.getJobs()
     if not args.appearance:

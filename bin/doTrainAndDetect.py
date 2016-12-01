@@ -5,12 +5,13 @@ import argparse
 import time
 import numpy as np
 
-runHours = 10
+runHours = 5
+runHoursDetect = 12
 runHoursBuffer = 4
 vtp = vtpalmetto.VTPalmetto()
 vtp.qsubParams = dict(l='select=1:ncpus=1:mem=16gb:ngpus=1:gpu_model=k40,walltime={0}:00:00'.format(
-    runHours+runHoursBuffer))
-vtp.name = 'repeatTrain'
+    runHours+runHoursDetect +runHoursBuffer))
+vtp.name = 'doTrainDetect'
 
 testFrames = [10, 11, 12, 13, 14]
 trainFrames = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -23,7 +24,7 @@ n=20
 caffeIterations = 3000
 #trainIterations = 9
 
-def task(dataset, threshold, _job):
+def task(dataset, number, _job):
     startTime = time.time()
     vtp.setJob(_job)
     vtp.gotoTmp()
@@ -56,7 +57,7 @@ def task(dataset, threshold, _job):
         labeledDataToDB(**labeledDataParams)
         vtp.makeVT('trainNet')
         vtp.makeVT('buildNet')
-        basicDetector('-r', x, y, w, h, '-s', sz, '-n', n, '-g', vtp.gpuDev, '-t', 4.0*np.exp(-i/1.5)+threshold, dataset)
+        basicDetector('-r', x, y, w, h, '-s', sz, '-n', n, '-g', vtp.gpuDev, '-t', 0.0 , dataset)
 
         out = detectionAccuracy(l=dataset, d='detections.pb', 
                 t=' '.join(str(t) for t in trainFrames),
@@ -69,6 +70,9 @@ def task(dataset, threshold, _job):
             results[i] = match.groupdict()
         else:
             results[i] = out.stdout
+
+    basicDetector('-r', x, y, w, h, '-s', sz, '-n', number, '-g', vtp.gpuDev, '-t', 0.0, dataset)
+    vtp.export('detections.pb')
     vtp.export('src/caffe/mean.cvs')
     vtp.export('src/caffe/vehicle_detector_train_iter_'+str(caffeIterations)+'.caffemodel')
     vtp.export('negatives.yml')
@@ -81,38 +85,16 @@ parser.add_argument('command', choices=['submit', 'status', 'results'])
 args = parser.parse_args()
 
 if args.command == 'submit':
-    vtpalmetto.submit(vtp,task,[dict(dataset='skycomp1', threshold=t) for t in np.arange(-1,3.0,0.5)])
+    vtpalmetto.submit(vtp,task,[dict(dataset='skycomp1', number=n) for n in range(50, 251, 50)])
 elif args.command == 'status':
     vtpalmetto.printStatus(vtp)
 elif args.command == 'results':
     jobs =vtp.getJobs()
 
-    def missRate(r):
-        tp = float(r['TEST_TP'])
-        fn = float(r['TEST_FN'])
-        #print "tp={0},fn={1}, mr={2}".format(tp,fn,  fn/(fn+tp))
-        return fn/(fn+tp)
-    def FPPI(r, n):
-        fp = float(r['TEST_FP']) + float(r['TEST_DP'])
-        return fp/n
-
-    MRvFPPI = []
     for j in jobs:
         if not j.retVal:
             continue
         ret=j.decode(j.retVal)
         params=j.decode(j.params)
-        d = {}
-        for k in ret[0].keys():
-            d[k] = [int(ret[i][k]) for i in sorted(ret.keys())]
-        print d
-        #print ret
-        if 'threshold' in params.keys():
-            best = ret[max(ret.keys())]
-            MRvFPPI.append((
-                    FPPI(best, len(testFrames)), 
-                    missRate(best), 
-                    params['threshold'])) 
-
-    print MRvFPPI
+        print params
     

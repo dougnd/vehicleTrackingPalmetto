@@ -8,9 +8,9 @@ import numpy as np
 
 runHours = 10
 vtp = vtpalmetto.VTPalmetto()
-vtp.qsubParams = dict(l='select=1:ncpus=1:mem=16gb,walltime={0}:00:00'.format(
+vtp.qsubParams = dict(l='select=1:ncpus=2:mem=16gb,walltime={0}:00:00'.format(
     runHours))
-vtp.name = 'frameDiffROC'
+vtp.name = 'frameDiff'
 
 testFrames = [10, 11, 12, 13, 14]
 trainFrames = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -41,7 +41,7 @@ def task(dataset, _job):
     results = dict()
 
 
-    for threshold in np.arange(1, 15, 5):
+    for threshold in np.arange(5, 251, 5):
         basicDetector('-r', x, y, w, h, '-s', sz, '-n', n, '-g', vtp.gpuDev, '-t', threshold, "-d", "diff", dataset)
 
         out = detectionAccuracy(l=dataset, d='detections.pb', 
@@ -57,12 +57,13 @@ def task(dataset, _job):
             results[threshold] = out.stdout
             print 'ERROR, could not find pattern in "{0}"'.format(out.stdout)
     def missRate(r):
-        tp = r['TEST_TP']
-        fn = r['TEST_FN']
-        return float(fn)/float(fn+tp)
+        tp = float(r['TEST_TP'])
+        fn = float(r['TEST_FN'])
+        #print "tp={0},fn={1}, mr={2}".format(tp,fn,  fn/(fn+tp))
+        return fn/(fn+tp)
     def FPPI(r, n):
-        fp = r['TEST_FP'] + r['TEST_DP']
-        return float(fp)/n
+        fp = float(r['TEST_FP']) + float(r['TEST_DP'])
+        return fp/n
 
     return dict(
             results = results, 
@@ -85,9 +86,9 @@ elif args.command == 'results':
     jobs =vtp.getJobs()
     for j in jobs:
         ret=j.decode(j.retVal)
-        d = {}
-        for k in ret[0].keys():
-            d[k] = [int(ret[i][k]) for i in sorted(ret.keys())]
-        print d
-        #print ret
+        #d = {}
+        #for k in ret[0].keys():
+            #d[k] = [int(ret[i][k]) for i in sorted(ret.keys())]
+        #print d
+        print ret
 

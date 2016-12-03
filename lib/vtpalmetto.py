@@ -43,12 +43,11 @@ class VTPalmetto(object):
         self.runHash = None
         self.pbsId = None
         self.gpuDev = None
-
+        if 'PBS_JOBID' in os.environ:
+            self.setPbsId(os.environ['PBS_JOBID'])
         self.qsubParams = dict(l='select=1:ncpus=1:mem=1gb,walltime=0:30:00')
-
-    def setJob(self, job):
-        self.runHash = job['runHash']
-        self.pbsId = job['pbsId']
+    def setPbsId(self, pbsId):
+        self.pbsId = pbsId
         if self.pbsId != 0:
             out = qstat(f=self.pbsId)
             hostname = socket.gethostname()
@@ -60,6 +59,11 @@ class VTPalmetto(object):
                 print 'Setting GPU device to: {0}'.format(self.gpuDev)
             else:
                 print 'No GPU device found.'
+
+
+    def setJob(self, job):
+        self.runHash = job['runHash']
+        self.setPbsId(job['pbsId'])
 
     def getTmpDir(self):
         if self.isPalmetto or self.isPalmettoNode:
@@ -109,6 +113,39 @@ class VTPalmetto(object):
             if all(item in params.items() for item in kwarg.items()):
                 return j
         return None
+
+    # call from build dir
+    def changeNetParams(self, **kwarg):
+        netFileName = '../src/caffe/defaultDetectorNet.prototxt'
+        if 'netFileName' in kwarg:
+            netFileName = kwarg['netFileName']
+            del kwarg['netFileName']
+        argmap = {
+                #name : (line#, line_name)
+                'conv1N': (9, 'num_output'),
+                'conv1Size': (10, 'kernel_size'),
+                'conv2N': (41, 'num_output'),
+                'conv2Size': (43, 'kernel_size'),
+                'fc1N': (70, 'num_output')}
+        with open(netFileName, 'r') as f:
+            data = f.readlines()
+        for key, value in kwarg.iteritems():
+            if not key in argmap:
+                print "ERROR: {0} not in {1}".format(key, argmap)
+                print "all args: {0}".format(kwarg)
+                continue
+            pattern = r"("+argmap[key][1]+r":\s+)\d+"
+            replacement = r"\g<1>"+str(value)
+            line = data[argmap[key][0]-1]
+            #print (pattern, replacement, line)
+            result = re.sub(pattern, replacement, line)
+            #print "result: ", result
+            data[argmap[key][0]-1] = result
+
+        with open(netFileName, 'w') as f:
+            f.writelines( data )
+
+
 
 
 def submit(vtp, task,params):

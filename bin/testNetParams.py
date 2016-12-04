@@ -16,11 +16,11 @@ vtp.qsubParams = dict(l='select=1:ncpus=1:mem=20gb:ngpus=1:gpu_model=k40,walltim
     runHours))
 vtp.name = 'testNetParams'
 
-maxAtSameTime = 15
+maxAtSameTime = 1
 
 hostname = '130.127.249.119'
 dbname = 'vdnet3_db'
-trials = MongoTrials('mongo://'+hostname+':1234/'+dbname+'/jobs', exp_key='exp5')
+trials = MongoTrials('mongo://'+hostname+':1234/'+dbname+'/jobs', exp_key='exp6')
 
 def _print_line(line):
     print line.encode("utf-8")

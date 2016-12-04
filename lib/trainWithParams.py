@@ -13,7 +13,7 @@ h=3500
 sz=100
 n=16
 caffeIterations = 4000
-trainIter = 4
+trainIter = 2
 
 
 def task(args):
@@ -43,8 +43,8 @@ def task(args):
 
     cp('-r', vtp.srcDir+'/data/labels/skycomp1', '.')
 
-    results = dict()
-    i = -1
+    results = []
+    #i = -1
     for i in range(trainIter):
     #while time.time() < (startTime + 60*60*runHours):
         #i+=1
@@ -68,23 +68,29 @@ def task(args):
         pattern = ''.join('{0} {1}:\s+(?P<{0}_{1}>\d+).*'.format(m,v) for m in mode for v in value)
         match = re.search(pattern, out.stdout, re.DOTALL)
         if match:
-            results[i] = match.groupdict()
-            tp = float(match.groupdict['TEST_TP'])
-            fn = float(match.groupdict['TEST_FN'])
-            dp = float(match.groupdict['TEST_DP'])
-            fp = dp + float(match.groupdict['TEST_FP'])
+            res = match.groupdict()
+            tp = float(res['TEST_TP'])
+            fn = float(res['TEST_FN'])
+            dp = float(res['TEST_DP'])
+            fp = dp + float(res['TEST_FP'])
             p = tp/(tp+fp)
             r = tp/(tp+fn)
-            results[i]['TEST_P'] = p
-            results[i]['TEST_R'] = r
-            results[i]['TEST_F2'] = 5.0*p*r(4*p+r)
+            res['TEST_P'] = p
+            res['TEST_R'] = r
+            res['TEST_F2'] = 5.0*p*r/(4*p+r)
+            print "done with iter {0}".format(i)
+            print res  
+            results.append(res)
         else:
-            return dict(loss = 1e6, status='fail', status_fail='error could not find match')
+            print "error, no match!"
+            print "STDOUT: ", out.stdout
+            return dict(loss = 1e6, status='fail', status_fail='error could not find match ')
 
-    min_f2 = min([r['TEST_F2'] for r in results])
+    print results
+    max_f2 = max([r['TEST_F2'] for r in results])
 
     ret = dict(
-            loss=-min_f2,
+            loss=-max_f2,
             status='ok',
             rawResults=results)
     print ret

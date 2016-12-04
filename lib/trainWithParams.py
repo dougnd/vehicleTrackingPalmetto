@@ -29,7 +29,7 @@ def task(args):
     vtp.cmakeParams.append('-DTRAIN_ITERATIONS='+str(caffeIterations))
     vtp.cmakeParams.append('-DDETECTOR_WIDTH='+str(detectorSize))
     vtp.cmakeParams.append('-DDETECTOR_HEIGHT='+str(detectorSize))
-    vtp.changeNetParams(args)
+    vtp.changeNetParams(**args)
     vtp.cmakeVT()
 
     vtp.makeVT('labeledDataToDB')

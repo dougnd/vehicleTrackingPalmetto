@@ -17,6 +17,8 @@ trainIter = 4
 
 
 def task(args):
+    for k in args.keys():
+        args[k] = int(args[k])
     print args
     detectorSize = args['detectorSize']
     del args['detectorSize']

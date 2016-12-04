@@ -20,7 +20,7 @@ maxAtSameTime = 1
 
 hostname = '130.127.249.119'
 dbname = 'vdnet3_db'
-trials = MongoTrials('mongo://'+hostname+':1234/'+dbname+'/jobs', exp_key='exp1')
+trials = MongoTrials('mongo://'+hostname+':1234/'+dbname+'/jobs', exp_key='exp4')
 
 def _print_line(line):
     print line.encode("utf-8")
@@ -68,6 +68,8 @@ elif args.command == 'submit':
 elif args.command == 'status':
     vtpalmetto.printStatus(vtp)
 elif args.command == 'results':
-    pass
-
+    print trials.statuses()
+    print trials.losses()
+    print trials.results
+    print trials.trials
     

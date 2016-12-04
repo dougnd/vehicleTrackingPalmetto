@@ -39,13 +39,13 @@ parser.add_argument('command', choices=['submit', 'status', 'results', 'master']
 args = parser.parse_args()
 
 
-space = [
-    hp.quniform('detectorSize', 25, 150, 1.0), 
-    hp.quniform('conv1N', 10, 75, 1.0), 
-    1+hp.quniform('conv1Size', 4, 10, 2.0), 
-    hp.quniform('conv2N', 10, 75, 1.0), 
-    1+hp.quniform('conv2Size', 4, 10, 2.0), 
-    hp.quniform('fc1N', 10, 100, 1.0)]
+space = {
+        'detectorSize': hp.quniform('detectorSize', 25, 150, 1.0), 
+        'conv1N':hp.quniform('conv1N', 10, 75, 1.0), 
+        'conv1Size':1+hp.quniform('conv1Size', 4, 10, 2.0), 
+        'conv2N':hp.quniform('conv2N', 10, 75, 1.0), 
+        'conv2Size':1+hp.quniform('conv2Size', 4, 10, 2.0), 
+        'fc1N':hp.quniform('fc1N', 10, 100, 1.0)}
 
 
 if args.command == 'master':
@@ -53,15 +53,16 @@ if args.command == 'master':
     print best
 
 elif args.command == 'submit':
+    palmetto = pypalmetto.Palmetto()
     for i in range(maxAtSameTime):
         j = palmetto.createJob(task, dict(index=i), vtp.name, 
                 vtp.qsubParams)
         s = j.getStatus()
         if s == pypalmetto.JobStatus.NotSubmitted or s == pypalmetto.JobStatus.Completed:
-            print "submitting with index == i"
-            s.submit(force=True)
+            print "submitting with index == {0}".format(i)
+            j.submit(force=True)
         else:
-            print "not submitting with index == i, status={0}".format(s)
+            print "not submitting with index == {0}, status={1}".format(i,s)
 
 
 elif args.command == 'status':

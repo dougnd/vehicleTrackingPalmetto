@@ -16,7 +16,10 @@ caffeIterations = 4000
 trainIter = 4
 
 
-def task(detectorSize, conv1N, conv1Size, conv2N, conv2Size, fc1N):
+def task(args):
+    print args
+    detectorSize = args['detectorSize']
+    del args['detectorSize']
     dataset = 'skycomp1'
     vtp = vtpalmetto.VTPalmetto()
     startTime = time.time()
@@ -26,11 +29,7 @@ def task(detectorSize, conv1N, conv1Size, conv2N, conv2Size, fc1N):
     vtp.cmakeParams.append('-DTRAIN_ITERATIONS='+str(caffeIterations))
     vtp.cmakeParams.append('-DDETECTOR_WIDTH='+str(detectorSize))
     vtp.cmakeParams.append('-DDETECTOR_HEIGHT='+str(detectorSize))
-    vtp.changeNetParams(conv1N=conv1N, 
-            conv1Size=conv1Size, 
-            conv2N=conv2N,
-            conv2Size=conv2Size,
-            fc1N=fc1N)
+    vtp.changeNetParams(args)
     vtp.cmakeVT()
 
     vtp.makeVT('labeledDataToDB')

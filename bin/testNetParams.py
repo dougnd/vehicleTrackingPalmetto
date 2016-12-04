@@ -49,7 +49,7 @@ space = [
 
 
 if args.command == 'master':
-    best = fmin(trainWithParams.tast, space, trials=trials, algo=tpe.suggest, max_evals=50)
+    best = fmin(trainWithParams.task, space, trials=trials, algo=tpe.suggest, max_evals=50)
     print best
 
 elif args.command == 'submit':

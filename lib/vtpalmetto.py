@@ -135,7 +135,7 @@ class VTPalmetto(object):
                 print "all args: {0}".format(kwarg)
                 continue
             pattern = r"("+argmap[key][1]+r":\s+)\d+"
-            replacement = r"\g<1>"+str(value)
+            replacement = r"\g<1>"+str(int(value))
             line = data[argmap[key][0]-1]
             #print (pattern, replacement, line)
             result = re.sub(pattern, replacement, line)

@@ -12,11 +12,12 @@ w=5300
 h=3500
 sz=100
 n=16
-caffeIterations = 3000
-runHours = 10
+caffeIterations = 4000
+trainIter = 4
 
 
-def task(dataset, detectorSize, conv1N, conv1Size, conv2N, conv2Size, fc1N):
+def task(detectorSize, conv1N, conv1Size, conv2N, conv2Size, fc1N):
+    dataset = 'skycomp1'
     vtp = vtpalmetto.VTPalmetto()
     startTime = time.time()
     vtp.gotoTmp()
@@ -43,9 +44,9 @@ def task(dataset, detectorSize, conv1N, conv1Size, conv2N, conv2Size, fc1N):
 
     results = dict()
     i = -1
-    #for i in range(trainIterations):
-    while time.time() < (startTime + 60*60*runHours):
-        i+=1
+    for i in range(trainIter):
+    #while time.time() < (startTime + 60*60*runHours):
+        #i+=1
         rm('-rf', 'src/caffe/train.leveldb', 'src/caffe/test.leveldb')
         labeledDataParams = dict(l=dataset, n='negatives.yml', 
                 t=' '.join(str(t) for t in trainFrames),

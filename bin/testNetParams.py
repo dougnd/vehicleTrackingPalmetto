@@ -16,11 +16,11 @@ vtp.qsubParams = dict(l='select=1:ncpus=1:mem=20gb:ngpus=1:gpu_model=k40,walltim
     runHours))
 vtp.name = 'testNetParams'
 
-maxAtSameTime = 1
+maxAtSameTime = 15
 
 hostname = '130.127.249.119'
 dbname = 'vdnet3_db'
-trials = MongoTrials('mongo://'+hostname+':1234/'+dbname+'/jobs', exp_key='exp4')
+trials = MongoTrials('mongo://'+hostname+':1234/'+dbname+'/jobs', exp_key='exp5')
 
 def _print_line(line):
     print line.encode("utf-8")
@@ -40,12 +40,12 @@ args = parser.parse_args()
 
 
 space = {
-        'detectorSize': hp.quniform('detectorSize', 25, 150, 1), 
-        'conv1N':hp.quniform('conv1N', 10, 75, 1.0), 
-        'conv1Size':1+hp.quniform('conv1Size', 4, 10, 2), 
-        'conv2N':hp.quniform('conv2N', 10, 75, 1), 
-        'conv2Size':1+hp.quniform('conv2Size', 4, 10, 2), 
-        'fc1N':hp.quniform('fc1N', 10, 100, 1)}
+        'detectorSize': hp.quniform('detectorSize', 25, 75, 1), 
+        'conv1N':hp.quniform('conv1N', 10, 25, 1.0), 
+        'conv1Size':1+hp.quniform('conv1Size', 4, 6, 2), 
+        'conv2N':hp.quniform('conv2N', 10, 25, 1), 
+        'conv2Size':1+hp.quniform('conv2Size', 4, 6, 2), 
+        'fc1N':hp.quniform('fc1N', 10, 25, 1)}
 
 
 if args.command == 'master':

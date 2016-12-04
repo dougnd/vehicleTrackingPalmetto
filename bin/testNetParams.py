@@ -6,7 +6,9 @@ import argparse
 import time
 import numpy as np
 import trainWithParams
-import hyperopt as hp
+from hyperopt import fmin, tpe, hp                                                                                                                                                                                              
+from hyperopt.mongoexp import MongoTrials
+
 
 runHours = 48
 vtp = vtpalmetto.VTPalmetto()
@@ -14,13 +16,18 @@ vtp.qsubParams = dict(l='select=1:ncpus=1:mem=20gb:ngpus=1:gpu_model=k40,walltim
     runHours))
 vtp.name = 'testNetParams'
 
+maxAtSameTime = 10
+
+hostname = '130.127.249.119'
+dbname = 'vdnet_db'
+trials = MongoTrials('mongo://'+hostname+':1234/'+dbname+'/jobs', exp_key='exp1')
 
 def _print_line(line):
     print line.encode("utf-8")
 
 def task(index):
     hmw = Command('hyperopt-mongo-worker')
-    hmw( _out=_print_line, _err=_print_line)
+    hmw('--mongo={0}:{1}/{2}'.format(hostname,1234,dbname), _out=_print_line, _err=_print_line)
 
     return 'done'
     
@@ -31,10 +38,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('command', choices=['submit', 'status', 'results', 'master'])
 args = parser.parse_args()
 
-maxAtSameTime = 10
-hostname = '130.127.249.119'
-dbname = 'vdnet__db'
-trials = MongoTrials('mongo://'+hostname+':1234/'+dbname+'/jobs', exp_key='exp1')
 
 space = [
     hp.quniform('detectorSize', 25, 150, 1.0), 

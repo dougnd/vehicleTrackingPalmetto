@@ -89,6 +89,31 @@ class VTPalmetto(object):
     def makeVT(self, *args):
         make(*args, _out=_print_line, _err=_print_line)
 
+    def detectionAccuracy(self, **kwargs):
+        da = Command("util/detectionAccuracy")
+        out = da(**kwargs)
+        mode = ['TRAIN', 'TEST']
+        value = ['TP', 'FP', 'DP', 'FN']
+        pattern = ''.join('{0} {1}:\s+(?P<{0}_{1}>\d+).*'.format(m,v) for m in mode for v in value)
+        match = re.search(pattern, out.stdout, re.DOTALL)
+        d = match.groupdict()
+        d = dict([(k, int(v)) for k,v in d.iteritems() ])
+        tp = float(d['TEST_TP'])
+        fn = float(d['TEST_FN'])
+        dp = float(d['TEST_DP'])
+        fp = dp + float(d['TEST_FP'])
+        p = tp/(tp+fp)
+        r = tp/(tp+fn)
+        d['TEST_P'] = p
+        d['TEST_R'] = r
+        d['TEST_F2'] = 5.0*p*r/(4*p+r)
+        d['TEST_MR'] = fn/(fn+tp)
+        if 'T' in kwargs:
+            n = len(kwargs['T'])
+            d['TEST_FPPI'] = fp/float(n)
+        return d
+
+
     def _exportDir(self):
         if self.runHash:
             return os.environ['HOME'] + '/vtp-results/' + self.name + '/' + self.runHash

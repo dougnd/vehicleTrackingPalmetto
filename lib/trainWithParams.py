@@ -12,8 +12,8 @@ w=5300
 h=3500
 sz=100
 n=16
-caffeIterations = 4000
-trainIter = 2
+caffeIterations = 6000
+trainIter = 1
 
 
 def task(args):
@@ -42,6 +42,7 @@ def task(args):
     detectionAccuracy = Command("util/detectionAccuracy")
 
     cp('-r', vtp.srcDir+'/data/labels/skycomp1', '.')
+    cp(vtp.srcDir+'/../negatives.yml', '.')
 
     results = []
     #i = -1

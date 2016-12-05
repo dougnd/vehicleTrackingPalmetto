@@ -68,8 +68,25 @@ elif args.command == 'submit':
 elif args.command == 'status':
     vtpalmetto.printStatus(vtp)
 elif args.command == 'results':
-    print trials.statuses()
-    print trials.losses()
-    print trials.results
-    print trials.trials
+    #print trials.statuses()
+    #print trials.losses()
+    #print trials.results
+    #print trials.trials
+    from tabulate import tabulate
+    #import copy
+    res = []
+    for t in trials.trials:
+        r = t['result']
+        if r['status'] == 'ok':
+            #d = copy.copy(t['misc']['vals']) 
+            d = dict([(k, int(v[0])) for k,v in t['misc']['vals'].iteritems() ])
+            d['loss'] = r['loss']
+            res.append(d)
+            #print t['misc']['vals'].values()
+            #print t['vals']
+    print "There are {0} finished results! ({1} total, {2} new)".format(
+            len(res), len(trials.trials),
+            sum(s == 'new' for s in trials.statuses()))
+
+    print tabulate(sorted(res, key=lambda x:x['loss']), headers='keys')
     

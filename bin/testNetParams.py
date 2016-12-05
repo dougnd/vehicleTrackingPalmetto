@@ -36,16 +36,17 @@ def task(index):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command', choices=['submit', 'status', 'results', 'master'])
+parser.add_argument('-i', help="results from a trial index", default=-1, type=int)
 args = parser.parse_args()
 
 
 space = {
-        'detectorSize': hp.quniform('detectorSize', 25, 75, 1), 
-        'conv1N':hp.quniform('conv1N', 10, 25, 1.0), 
-        'conv1Size':1+hp.quniform('conv1Size', 4, 6, 2), 
-        'conv2N':hp.quniform('conv2N', 10, 25, 1), 
-        'conv2Size':1+hp.quniform('conv2Size', 4, 6, 2), 
-        'fc1N':hp.quniform('fc1N', 10, 25, 1)}
+        'detectorSize': hp.quniform('detectorSize', 25, 100, 1), 
+        'conv1N':hp.quniform('conv1N', 10, 40, 1.0), 
+        'conv1Size':1+hp.quniform('conv1Size', 4, 8, 2), 
+        'conv2N':hp.quniform('conv2N', 10, 40, 1), 
+        'conv2Size':1+hp.quniform('conv2Size', 4, 8, 2), 
+        'fc1N':hp.quniform('fc1N', 10, 40, 1)}
 
 
 if args.command == 'master':
@@ -73,20 +74,46 @@ elif args.command == 'results':
     #print trials.results
     #print trials.trials
     from tabulate import tabulate
+    from datetime import datetime, timedelta
     #import copy
     res = []
-    for t in trials.trials:
+    new = []
+    def tdToStr(td):
+        return str(timedelta(seconds=td.seconds))
+
+    if args.i > -1:
+        print trials.trials[args.i]
+        exit(0)
+        
+
+    for i,t in enumerate(trials.trials):
         r = t['result']
         if r['status'] == 'ok':
-            #d = copy.copy(t['misc']['vals']) 
             d = dict([(k, int(v[0])) for k,v in t['misc']['vals'].iteritems() ])
-            d['loss'] = r['loss']
+            d['Loss'] = r['loss']
+            d['i'] = i
+            d['Compute Time'] =  tdToStr(t['refresh_time'] - t['book_time'])
             res.append(d)
-            #print t['misc']['vals'].values()
-            #print t['vals']
+        if r['status'] == 'new':
+            d = dict([(k, int(v[0])) for k,v in t['misc']['vals'].iteritems() ])
+            #d['c'] = np.prod(d.values())
+            if t['book_time']:
+                d['Elapsed Time'] =  tdToStr(datetime.utcnow() - t['book_time'])
+                d['owner'] =  t['owner'][0]
+            d['i'] = i
+            #d['book time'] =  t['book_time']
+            new.append(d)
+            #print t
+            #break
+
+
     print "There are {0} finished results! ({1} total, {2} new)".format(
             len(res), len(trials.trials),
             sum(s == 'new' for s in trials.statuses()))
 
-    print tabulate(sorted(res, key=lambda x:x['loss']), headers='keys')
+    print "RESULTS:"
+    #print tabulate(sorted(res, key=lambda x:x['Compute Time']), headers='keys')
+    print tabulate(sorted(res, key=lambda x:x['Loss']), headers='keys')
+    print "IN PROGRESS:"
+    print tabulate(new, headers='keys')
     

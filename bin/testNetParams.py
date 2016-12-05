@@ -19,7 +19,7 @@ vtp.name = 'testNetParams'
 maxAtSameTime = 15
 
 hostname = '130.127.249.119'
-dbname = 'vdnet4_db'
+dbname = 'vdnet5_db'
 trials = MongoTrials('mongo://'+hostname+':1234/'+dbname+'/jobs', exp_key='exp1')
 
 def _print_line(line):
@@ -41,12 +41,12 @@ args = parser.parse_args()
 
 
 space = {
-        'detectorSize': hp.quniform('detectorSize', 25, 100, 1), 
+        'detectorSize': hp.quniform('detectorSize', 25, 125, 1), 
         'conv1N':hp.quniform('conv1N', 10, 40, 1.0), 
-        'conv1Size':1+hp.quniform('conv1Size', 4, 8, 2), 
-        'conv2N':hp.quniform('conv2N', 10, 40, 1), 
-        'conv2Size':1+hp.quniform('conv2Size', 4, 8, 2), 
-        'fc1N':hp.quniform('fc1N', 10, 40, 1)}
+        'conv1Size':1+hp.quniform('conv1Size', 2, 8, 2), 
+        'conv2N':hp.quniform('conv2N', 10, 60, 1), 
+        'conv2Size':1+hp.quniform('conv2Size', 2, 8, 2), 
+        'fc1N':hp.quniform('fc1N', 10, 100, 1)}
 
 
 if args.command == 'master':

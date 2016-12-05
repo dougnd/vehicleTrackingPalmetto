@@ -10,10 +10,10 @@ x=0
 y=0
 w=5300
 h=3500
-sz=100
+szExtra=75
 n=16
 caffeIterations = 6000
-trainIter = 1
+trainIter = 3
 
 
 def task(args):
@@ -53,13 +53,13 @@ def task(args):
         labeledDataParams = dict(l=dataset, n='negatives.yml', 
                 t=' '.join(str(t) for t in trainFrames),
                 T=' '.join(str(t) for t in testFrames))
-        if i != 0: 
-            labeledDataParams['d']='detections.pb'
+        #if i != 0: 
+            #labeledDataParams['d']='detections.pb'
 
         labeledDataToDB(**labeledDataParams)
         vtp.makeVT('trainNet')
         vtp.makeVT('buildNet')
-        basicDetector('-r', x, y, w, h, '-s', sz, '-n', n, '-g', vtp.gpuDev, dataset)
+        basicDetector('-r', x, y, w, h, '-s', (szExtra+detectorSize), '-n', n, '-g', vtp.gpuDev, dataset)
 
         out = detectionAccuracy(l=dataset, d='detections.pb', 
                 t=' '.join(str(t) for t in trainFrames),
@@ -88,12 +88,13 @@ def task(args):
             return dict(loss = 1e6, status='fail', status_fail='error could not find match ')
 
     print results
-    max_f2 = max([r['TEST_F2'] for r in results])
+    mean_f2 = np.mean([r['TEST_F2'] for r in results])
 
     ret = dict(
-            loss=-max_f2,
+            loss=-mean_f2,
             status='ok',
-            rawResults=results)
+            rawResults=results,
+            pbsId=vtp.pbsId)
     print ret
     return ret
 

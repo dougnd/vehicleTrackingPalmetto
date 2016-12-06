@@ -37,9 +37,9 @@ def task(args):
     vtp.makeVT('labeledDataToDB')
     labeledDataToDB = Command("util/labeledDataToDB")
     vtp.makeVT('basicDetector')
-    basicDetector = Command("util/basicDetector")
+    #basicDetector = Command("util/basicDetector")
     vtp.makeVT('detectionAccuracy')
-    detectionAccuracy = Command("util/detectionAccuracy")
+    #detectionAccuracy = Command("util/detectionAccuracy")
 
     cp('-r', vtp.srcDir+'/data/labels/skycomp1', '.')
     cp(vtp.srcDir+'/../negatives.yml', '.')
@@ -59,32 +59,18 @@ def task(args):
         labeledDataToDB(**labeledDataParams)
         vtp.makeVT('trainNet')
         vtp.makeVT('buildNet')
-        basicDetector('-r', x, y, w, h, '-s', (szExtra+detectorSize), '-n', n, '-g', vtp.gpuDev, dataset)
+        vtp.basicDetector('-r', x, y, w, h, '-s', (szExtra+detectorSize), '-n', n, '-g', vtp.gpuDev, dataset)
 
-        out = detectionAccuracy(l=dataset, d='detections.pb', 
+        out = vtp.detectionAccuracy(l=dataset, d='detections.pb', 
                 t=' '.join(str(t) for t in trainFrames),
                 T=' '.join(str(t) for t in testFrames))
-        mode = ['TRAIN', 'TEST']
-        value = ['TP', 'FP', 'DP', 'FN']
-        pattern = ''.join('{0} {1}:\s+(?P<{0}_{1}>\d+).*'.format(m,v) for m in mode for v in value)
-        match = re.search(pattern, out.stdout, re.DOTALL)
-        if match:
-            res = match.groupdict()
-            tp = float(res['TEST_TP'])
-            fn = float(res['TEST_FN'])
-            dp = float(res['TEST_DP'])
-            fp = dp + float(res['TEST_FP'])
-            p = tp/(tp+fp)
-            r = tp/(tp+fn)
-            res['TEST_P'] = p
-            res['TEST_R'] = r
-            res['TEST_F2'] = 5.0*p*r/(4*p+r)
-            print "done with iter {0}".format(i)
-            print res  
-            results.append(res)
+        if out:
+            print "DetectionAccuracy Results:"
+            print out
+            results.append(out)
         else:
             print "error, no match!"
-            print "STDOUT: ", out.stdout
+            print "stdout: ", out.stdout
             return dict(loss = 1e6, status='fail', status_fail='error could not find match ')
 
     print results

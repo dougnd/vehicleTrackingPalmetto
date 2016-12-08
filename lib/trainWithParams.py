@@ -21,7 +21,9 @@ def task(args):
         args[k] = int(args[k])
     print args
     detectorSize = args['detectorSize']
+    frameDiff = args['frameDiff']
     del args['detectorSize']
+    del args['frameDiff']
     dataset = 'skycomp1'
     vtp = vtpalmetto.VTPalmetto()
     startTime = time.time()
@@ -53,13 +55,19 @@ def task(args):
         labeledDataParams = dict(l=dataset, n='negatives.yml', 
                 t=' '.join(str(t) for t in trainFrames),
                 T=' '.join(str(t) for t in testFrames))
+        if frameDiff:
+            labeledDataParams['f']=frameDiff
         #if i != 0: 
             #labeledDataParams['d']='detections.pb'
 
         labeledDataToDB(**labeledDataParams)
         vtp.makeVT('trainNet')
         vtp.makeVT('buildNet')
-        vtp.basicDetector('-r', x, y, w, h, '-s', (szExtra+detectorSize), '-n', n, '-g', vtp.gpuDev, dataset)
+        bdArgs = ['-r', x, y, w, h, '-s', (szExtra+detectorSize), '-n', n, '-g', vtp.gpuDev, dataset ]
+        if frameDiff != 0:
+            bdArgs.append('-f')
+            bdArgs.append(frameDiff)
+        vtp.basicDetector(*bdArgs)
 
         out = vtp.detectionAccuracy(l=dataset, d='detections.pb', 
                 t=' '.join(str(t) for t in trainFrames),

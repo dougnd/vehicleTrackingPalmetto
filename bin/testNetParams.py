@@ -16,10 +16,10 @@ vtp.qsubParams = dict(l='select=1:ncpus=1:mem=20gb:ngpus=1:gpu_model=k40,walltim
     runHours))
 vtp.name = 'testNetParams'
 
-maxAtSameTime = 15
+maxAtSameTime = 20
 
 hostname = '130.127.249.119'
-dbname = 'vdnet6_db'
+dbname = 'vdnet7_db'
 trials = MongoTrials('mongo://'+hostname+':1234/'+dbname+'/jobs', exp_key='exp1')
 
 def _print_line(line):
@@ -46,7 +46,8 @@ space = {
         'conv1Size':1+hp.quniform('conv1Size', 2, 8, 2), 
         'conv2N':hp.quniform('conv2N', 10, 60, 1), 
         'conv2Size':1+hp.quniform('conv2Size', 2, 8, 2), 
-        'fc1N':hp.quniform('fc1N', 10, 120, 1)}
+        'fc1N':hp.quniform('fc1N', 10, 120, 1),
+        'frameDiff':hp.randint('frameDiff', 0, 3)} # either 0, 1, or 2
 
 
 if args.command == 'master':

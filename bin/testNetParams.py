@@ -47,7 +47,7 @@ space = {
         'conv2N':hp.quniform('conv2N', 10, 60, 1), 
         'conv2Size':1+hp.quniform('conv2Size', 2, 8, 2), 
         'fc1N':hp.quniform('fc1N', 10, 120, 1),
-        'frameDiff':hp.randint('frameDiff', 0, 3)} # either 0, 1, or 2
+        'frameDiff':hp.randint('frameDiff', 3)} # either 0, 1, or 2
 
 
 if args.command == 'master':

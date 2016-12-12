@@ -10,7 +10,7 @@ runHoursBuffer = 4
 vtp = vtpalmetto.VTPalmetto()
 vtp.qsubParams = dict(l='select=1:ncpus=1:mem=16gb:ngpus=1:gpu_model=k40,walltime={0}:00:00'.format(
     runHours+runHoursBuffer))
-vtp.name = 'repeatTrain2'
+vtp.name = 'repeatTrain4'
 
 testFrames = [10, 11, 12, 13, 14]
 trainFrames = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -19,7 +19,7 @@ y=0
 w=5300
 h=3500
 sz=300
-n=20
+n=15
 caffeIterations = 4000
 #trainIterations = 9
 
@@ -40,6 +40,7 @@ def task(dataset, threshold, frameDiff, _job):
     #detectionAccuracy = Command("util/detectionAccuracy")
 
     cp('-r', vtp.srcDir+'/data/labels/skycomp1', '.')
+    cp(vtp.srcDir+'/../negatives.yml', '.')
 
     results = []
     i = -1
@@ -99,5 +100,8 @@ elif args.command == 'results':
         params=j.decode(j.params)
         print 'params: {0}'.format(params)
         print tabulate(ret, headers='keys')
+        allButFirst = ret[2:]
+        print "Avg F2 = {0}".format(
+                sum(r['TEST_F2'] for r in allButFirst)/float(len(allButFirst)))
 
     

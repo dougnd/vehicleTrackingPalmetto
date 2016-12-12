@@ -10,10 +10,10 @@ x=0
 y=0
 w=5300
 h=3500
-szExtra=60
-n=16
-caffeIterations = 6000
-trainIter = 3
+szExtra=100
+n=15
+caffeIterations = 5000
+trainIter = 4
 
 
 def task(args):
@@ -57,8 +57,8 @@ def task(args):
                 T=' '.join(str(t) for t in testFrames))
         if frameDiff:
             labeledDataParams['f']=frameDiff
-        #if i != 0: 
-            #labeledDataParams['d']='detections.pb'
+        if i != 0: 
+            labeledDataParams['d']='detections.pb'
 
         labeledDataToDB(**labeledDataParams)
         vtp.makeVT('trainNet')
@@ -82,7 +82,7 @@ def task(args):
             return dict(loss = 1e6, status='fail', status_fail='error could not find match ')
 
     print results
-    mean_f2 = np.mean([r['TEST_F2'] for r in results])
+    mean_f2 = np.mean([r['TEST_F2'] for r in results[1:]])
 
     ret = dict(
             loss=-mean_f2,

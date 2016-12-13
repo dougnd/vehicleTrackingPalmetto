@@ -6,7 +6,7 @@ import time
 import numpy as np
 
 
-runHours = 10
+runHours = 1
 vtp = vtpalmetto.VTPalmetto()
 vtp.qsubParams = dict(l='select=1:ncpus=2:mem=16gb,walltime={0}:00:00'.format(
     runHours))
@@ -44,38 +44,23 @@ def task(dataset, _job):
     for threshold in np.arange(5, 251, 5):
         basicDetector('-r', x, y, w, h, '-s', sz, '-n', n, '-g', vtp.gpuDev, '-t', threshold, "-d", "diff", dataset)
 
-        out = detectionAccuracy(l=dataset, d='detections.pb', 
+        out = vtp.detectionAccuracy(l=dataset, d='detections.pb', 
                 t=' '.join(str(t) for t in trainFrames),
                 T=' '.join(str(t) for t in testFrames))
-        mode = ['TRAIN', 'TEST']
-        value = ['TP', 'FP', 'DP', 'FN']
-        pattern = ''.join('{0} {1}:\s+(?P<{0}_{1}>\d+).*'.format(m,v) for m in mode for v in value)
-        match = re.search(pattern, out.stdout, re.DOTALL)
-        if match:
-            results[threshold] = match.groupdict()
-        else:
-            results[threshold] = out.stdout
-            print 'ERROR, could not find pattern in "{0}"'.format(out.stdout)
-    def missRate(r):
-        tp = float(r['TEST_TP'])
-        fn = float(r['TEST_FN'])
-        #print "tp={0},fn={1}, mr={2}".format(tp,fn,  fn/(fn+tp))
-        return fn/(fn+tp)
-    def FPPI(r, n):
-        fp = float(r['TEST_FP']) + float(r['TEST_DP'])
-        return fp/n
+        results[threshold] = out
 
-    return dict(
-            results = results, 
-            MRvFPPI = [(
-                FPPI(r, len(testFrames)), 
-                missRate(r), 
-                t)  for t, r in results.iteritems()
-            ])
+    return results
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command', choices=['submit', 'status', 'results'])
+class optionalFile(argparse.FileType):
+    def __call__(self, string):
+        if string == None:
+            return None
+        return super(optionalFile,self).__call__(string)
+
+parser.add_argument('-f', '--filename', default=None, type=optionalFile('w'))
 args = parser.parse_args()
 
 if args.command == 'submit':
@@ -84,11 +69,21 @@ elif args.command == 'status':
     vtpalmetto.printStatus(vtp)
 elif args.command == 'results':
     jobs =vtp.getJobs()
+    from tabulate import tabulate
     for j in jobs:
         ret=j.decode(j.retVal)
+        params=j.decode(j.params)
+        print 'params: {0}'.format(params)
+        ret = sorted((dict(threshold=k, **v) for k,v in ret.iteritems()), key=lambda x:x['threshold'])
+
+        print tabulate(ret, headers='keys')
+        if args.filename != None:
+            import json
+            print "writing out results to file"
+            args.filename.write(json.dumps(ret))
         #d = {}
         #for k in ret[0].keys():
             #d[k] = [int(ret[i][k]) for i in sorted(ret.keys())]
         #print d
-        print ret
+
 

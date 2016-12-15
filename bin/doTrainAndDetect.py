@@ -21,16 +21,21 @@ w=5300
 h=3500
 sz=300
 n=20
-caffeIterations = 3000
+caffeIterations = 5000
 #trainIterations = 9
 
-def task(dataset, number, _job):
+def task(dataset, number, frameDiff, detectorSize, netParams,  _job):
+    for k in netParams.keys():
+        netParams[k] = int(netParams[k])
     startTime = time.time()
     vtp.setJob(_job)
     vtp.gotoTmp()
     rm('-rf', 'vehicleTracking')
     vtp.getVT()
     vtp.cmakeParams.append('-DTRAIN_ITERATIONS='+str(caffeIterations))
+    vtp.cmakeParams.append('-DDETECTOR_WIDTH='+str(detectorSize))
+    vtp.cmakeParams.append('-DDETECTOR_HEIGHT='+str(detectorSize))
+    vtp.changeNetParams(**netParams)
     vtp.cmakeVT()
 
     vtp.makeVT('labeledDataToDB')
@@ -41,8 +46,9 @@ def task(dataset, number, _job):
     detectionAccuracy = Command("util/detectionAccuracy")
 
     cp('-r', vtp.srcDir+'/data/labels/skycomp1', '.')
+    cp(vtp.srcDir+'/../negatives.yml', '.')
 
-    results = dict()
+    results = []
     i = -1
     #for i in range(trainIterations):
     while time.time() < (startTime + 60*60*runHours):
@@ -51,27 +57,30 @@ def task(dataset, number, _job):
         labeledDataParams = dict(l=dataset, n='negatives.yml', 
                 t=' '.join(str(t) for t in trainFrames),
                 T=' '.join(str(t) for t in testFrames))
+        if frameDiff:
+            labeledDataParams['f']=frameDiff
         if i != 0: 
             labeledDataParams['d']='detections.pb'
 
         labeledDataToDB(**labeledDataParams)
         vtp.makeVT('trainNet')
         vtp.makeVT('buildNet')
-        basicDetector('-r', x, y, w, h, '-s', sz, '-n', n, '-g', vtp.gpuDev, '-t', 0.0 , dataset)
+        bdArgs = ['-r', x, y, w, h, '-s', sz, '-n', n, '-g', vtp.gpuDev, dataset ]
+        if frameDiff != 0:
+            bdArgs.append('-f')
+            bdArgs.append(frameDiff)
+        vtp.basicDetector(*bdArgs)
 
-        out = detectionAccuracy(l=dataset, d='detections.pb', 
+        out = vtp.detectionAccuracy(l=dataset, d='detections.pb', 
                 t=' '.join(str(t) for t in trainFrames),
                 T=' '.join(str(t) for t in testFrames))
-        mode = ['TRAIN', 'TEST']
-        value = ['TP', 'FP', 'DP', 'FN']
-        pattern = ''.join('{0} {1}:\s+(?P<{0}_{1}>\d+).*'.format(m,v) for m in mode for v in value)
-        match = re.search(pattern, out.stdout, re.DOTALL)
-        if match:
-            results[i] = match.groupdict()
-        else:
-            results[i] = out.stdout
+        results.append(out)
 
-    basicDetector('-r', x, y, w, h, '-s', sz, '-n', number, '-g', vtp.gpuDev, '-t', 0.0, dataset)
+    bdArgs = ['-r', x, y, w, h, '-s', sz, '-n', number, '-g', vtp.gpuDev, dataset ]
+    if frameDiff != 0:
+        bdArgs.append('-f')
+        bdArgs.append(frameDiff)
+    vtp.basicDetector(*bdArgs)
     vtp.export('detections.pb')
     vtp.export('src/caffe/mean.cvs')
     vtp.export('src/caffe/vehicle_detector_train_iter_'+str(caffeIterations)+'.caffemodel')
@@ -85,7 +94,19 @@ parser.add_argument('command', choices=['submit', 'status', 'results'])
 args = parser.parse_args()
 
 if args.command == 'submit':
-    vtpalmetto.submit(vtp,task,[dict(dataset='skycomp1', number=n) for n in range(50, 251, 50)])
+    netParams = dict(
+            fc1N=108,
+            conv1N=31,
+            conv2N=58,
+            conv1Size=5,
+            conv2Size=7
+            )
+
+    vtpalmetto.submit(vtp,task,[dict(
+        dataset='skycomp1', number=n,
+        detectorSize=60,
+        netParams=netParams,
+        frameDiff=1) for n in range(50, 51, 50)])
 elif args.command == 'status':
     vtpalmetto.printStatus(vtp)
 elif args.command == 'results':

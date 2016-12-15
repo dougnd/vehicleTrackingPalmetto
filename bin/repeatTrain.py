@@ -5,7 +5,7 @@ import argparse
 import time
 import numpy as np
 
-runHours = 12
+runHours = 10
 runHoursBuffer = 4
 vtp = vtpalmetto.VTPalmetto()
 vtp.qsubParams = dict(l='select=1:ncpus=1:mem=16gb:ngpus=1:gpu_model=k40,walltime={0}:00:00'.format(
@@ -23,7 +23,7 @@ n=15
 caffeIterations = 4000
 #trainIterations = 9
 
-def task(dataset, threshold, frameDiff, _job):
+def task(dataset, threshold, frameDiff, iteration, _job):
     startTime = time.time()
     vtp.setJob(_job)
     vtp.gotoTmp()
@@ -86,22 +86,40 @@ args = parser.parse_args()
 
 if args.command == 'submit':
     #vtpalmetto.submit(vtp,task,[dict(dataset='skycomp1', threshold=t) for t in np.arange(-1,3.0,0.5)])
-    vtpalmetto.submit(vtp,task,[dict(dataset='skycomp1', threshold=0, frameDiff=fd) for fd in range(3)])
+    #vtpalmetto.submit(vtp,task,[dict(dataset='skycomp1', threshold=0, frameDiff=fd) for fd in range(3)])
+    import itertools
+    vtpalmetto.submit(vtp,task,[dict(
+        dataset='skycomp1', 
+        threshold=0, 
+        iteration=i, 
+        frameDiff=fd) for i,fd in itertools.product(range(20),range(3))])
 elif args.command == 'status':
     vtpalmetto.printStatus(vtp)
 elif args.command == 'results':
     jobs =vtp.getJobs()
 
     from tabulate import tabulate
+    avgs = [[],[],[]]
     for j in jobs:
         if not j.retVal:
             continue
         ret=j.decode(j.retVal)
         params=j.decode(j.params)
-        print 'params: {0}'.format(params)
-        print tabulate(ret, headers='keys')
+        if not 'iteration' in params:
+            continue
+        #print 'params: {0}'.format(params)
+        #print tabulate(ret, headers='keys')
         allButFirst = ret[2:]
-        print "Avg F2 = {0}".format(
-                sum(r['TEST_F2'] for r in allButFirst)/float(len(allButFirst)))
+        avgF2=sum(r['TEST_F2'] for r in allButFirst)/float(len(allButFirst))
+        avgs[params['frameDiff']].append((params['iteration'], avgF2))
+        #print "Avg F2 = {0}".format(avgF2)
+    print avgs
+    for i,a in enumerate(avgs):
+        a = np.mean(list(x for i,x in avgs[i] if i > 10))
+        s = np.std(list(x for i,x in avgs[i] if i > 10))
+        print "fd: {0}, avg: {1}, s:{2}, n: {3}".format(i, a, s, len(avgs[i]))
+
+
+                
 
     
